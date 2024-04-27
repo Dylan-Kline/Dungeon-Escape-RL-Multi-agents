@@ -18,11 +18,10 @@ class DQNAgent:
         act_values = self.model.predict(state)
         return np.argmax(act_values[0])  # Returns the action with the highest Q-value
 
-    def train(self, state, action, reward, next_state, done, num_actions):
+    def train(self, state, action, reward, next_state, num_actions):
         target = reward
-        if not done:
-            next_state = next_state.reshape(1, -1)  # Reshape for the network
-            target = reward + 0.99 * np.amax(self.model.predict(next_state)[0])
+        next_state = next_state.reshape(1, -1)  # Reshape for the network
+        target = reward + 0.99 * np.amax(self.model.predict(next_state)[0])
         
         target_f = self.model.predict(state.reshape(1, -1))
         target_f[0][action] = target

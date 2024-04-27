@@ -27,6 +27,11 @@ for episode in range(total_episodes):
     while not done:
         decision_steps, terminal_steps = env.get_steps(behavior_name)
         actions = np.empty((0, 1), int)
+        
+        for agent_id in list(decision_steps) + list(terminal_steps):
+            if agent_id not in agents:
+                agents[agent_id] = DQNAgent(state_size=num_states, action_size=num_actions)
+
 
         for agent_id, decision_step in decision_steps.items():
             if agent_id not in agents:
@@ -42,7 +47,11 @@ for episode in range(total_episodes):
         env.set_actions(behavior_name, action_tuple)
         env.step()
         decision_steps, terminal_steps = env.get_steps(behavior_name)
-        print(list(decision_steps))
+        
+        for agent_id in list(decision_steps) + list(terminal_steps):
+            if agent_id not in agents:
+                agents[agent_id] = DQNAgent(state_size=num_states, action_size=num_actions)
+
 
         # Handle training and updating for both decision and terminal steps
         for agent_id, step in decision_steps.items():
@@ -50,7 +59,7 @@ for episode in range(total_episodes):
             #print(reward)
             next_state = np.concatenate([obs.flatten() for obs in step.obs])
             done = agent_id in terminal_steps
-            agents[agent_id].train(state, action, reward, next_state, done, num_actions)
+            agents[agent_id].train(state, action, reward, next_state, num_actions)
             episode_rewards += reward
             
         # Additional handling for agents in terminal steps
@@ -58,8 +67,8 @@ for episode in range(total_episodes):
             reward = step.reward
             episode_rewards += reward
 
-        if all(agent_id in terminal_steps for agent_id in decision_steps.agent_id):
-            done = True  # End episode if all agents are done
+        if len(terminal_steps) == len(decision_steps):
+            done = True
             print(episode_rewards)
             break
 
