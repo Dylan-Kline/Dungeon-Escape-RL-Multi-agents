@@ -11,10 +11,10 @@ class MultilayerPerceptron:
     def __init__(self):
 
         # Hyperparameters for model
-        self.learning_rate = 0.0009
-        self.iterations = 25000
-        self.batch_size = 256 # size of stochastic batches
-        self.decay_rate = 0.0000000002 # controls the rate of learning rate decay
+        self.learning_rate = 0.03
+        self.iterations = 1
+        self.batch_size = 371 # size of stochastic batches
+        self.decay_rate = 0.0 # controls the rate of learning rate decay
         self.lambda_reg = 0.0
 
         # Parameters for neural network layers
@@ -32,7 +32,7 @@ class MultilayerPerceptron:
             @ num_features : number of features/attributes in the input data'''
         
         if self.layer_sizes is None:
-            self.layer_sizes = self.layer_sizes = [num_features, 9, 9, 9, num_actions] # sizes for each layer from the input (index 0) to output layer (index n - 1)
+            self.layer_sizes = self.layer_sizes = [num_features, 15, 10, 15, 7, num_actions] # sizes for each layer from the input (index 0) to output layer (index n - 1)
 
             # init activation functions and derivatives to be used for each layer
             for i in range(len(self.layer_sizes) - 1):
@@ -53,7 +53,7 @@ class MultilayerPerceptron:
         # Add output layer to layers list
         self.layers.append(OutputLayer(self.layer_sizes[-2] + 1, self.layer_sizes[-1], softmax, self.activation_derivatives[1]))
 
-    def fit(self, x: NDArray, y: NDArray):
+    def fit(self, x: NDArray, y: NDArray, num_actions: int):
         '''
             Trains the model on the given input dataset.
             @ x : numpy array of input data
@@ -67,7 +67,7 @@ class MultilayerPerceptron:
         num_samples, num_features = x.shape # rows and columns of the input data x, respectively
         
         # initialize model weights
-        self.initialize_mlp(num_features)
+        self.initialize_mlp(num_features, num_actions)
 
         if num_samples < self.batch_size:
                 self.batch_size = num_samples // 6

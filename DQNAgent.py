@@ -7,7 +7,7 @@ class DQNAgent:
         self.action_size = action_size
         self.model = MultilayerPerceptron()
         self.model.initialize_mlp(num_features=state_size, num_actions=action_size)
-        self.epsilon = 1.0  # Exploration rate
+        self.epsilon = .1  # Exploration rate
         self.epsilon_decay = 0.995
         self.epsilon_min = 0.01
 
@@ -18,7 +18,7 @@ class DQNAgent:
         act_values = self.model.predict(state)
         return np.argmax(act_values[0])  # Returns the action with the highest Q-value
 
-    def train(self, state, action, reward, next_state, done):
+    def train(self, state, action, reward, next_state, done, num_actions):
         target = reward
         if not done:
             next_state = next_state.reshape(1, -1)  # Reshape for the network
@@ -27,7 +27,7 @@ class DQNAgent:
         target_f = self.model.predict(state.reshape(1, -1))
         target_f[0][action] = target
         
-        self.model.fit(state.reshape(1, -1), target_f)
+        self.model.fit(state.reshape(1, -1), target_f, num_actions)
         
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
