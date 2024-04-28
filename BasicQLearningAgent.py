@@ -20,6 +20,7 @@ class QAgent:
             epsilon_decay: The decay for epsilon
             final_epsilon: The final epsilon value
             discount_factor: The discount factor for computing the Q-value
+            action_num: The total number of actions available to the agent
         """
         self.q_values = defaultdict(lambda: np.zeros(action_num))
 
