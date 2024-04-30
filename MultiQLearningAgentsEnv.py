@@ -14,21 +14,24 @@ num_actions = spec.action_spec.discrete_branches[0]
 num_states = sum([obs.shape[0] for obs in spec.observation_specs])
 
 # Hyperparameters
-learning_rate = 0.01
+learning_rate = 0.1
 n_episodes = 10000
-start_epsilon = 1.0
-epsilon_decay = start_epsilon / n_episodes
+start_epsilon = 0.9
+epsilon_decay = (start_epsilon / (n_episodes)) * 10 # reduce the exploration over time
 final_epsilon = 0.03
 
 # Initialize a fixed number of QAgents based on the maximum number expected to be active
-max_agents = 36  # Adjust this number based on the maximum number of agents ever observed at once
+max_agents = 1  # Adjust this number based on the maximum number of agents ever observed at once
 agents_pool = [QAgent(learning_rate, start_epsilon, epsilon_decay, final_epsilon, num_actions) for _ in range(max_agents)]
 agent_id_map = {}
 
 def get_available_agent():
     if agents_pool:
-        return agents_pool.pop(0)
+        random_agent = np.random.randint(0, max_agents)
+        return agents_pool[random_agent]
     return QAgent(learning_rate, start_epsilon, epsilon_decay, final_epsilon, num_actions)
+
+last_reward_checkpoint = 0 # Helper var for printing running episode rewards
 
 for episode in range(n_episodes):
     env.reset()
@@ -69,7 +72,7 @@ for episode in range(n_episodes):
         for agent_id in current_ids:
             if agent_id in terminal_steps:
                 next_state = np.concatenate([obs.flatten() for obs in terminal_steps[agent_id].obs])
-                reward = terminal_steps[agent_id].reward 
+                reward = terminal_steps[agent_id].group_reward
                 episode_rewards[agent_id] = episode_rewards.get(agent_id, 0) + reward
                 agent_id_map[agent_id].update(state, action, reward, True, next_state)
                 done[agent_id] = True
@@ -77,12 +80,17 @@ for episode in range(n_episodes):
 
             elif agent_id in decision_steps:
                 next_state = np.concatenate([obs.flatten() for obs in decision_steps[agent_id].obs])
-                reward = decision_steps[agent_id].reward
+                reward = decision_steps[agent_id].group_reward
                 episode_rewards[agent_id] = episode_rewards.get(agent_id, 0) + reward
                 agent_id_map[agent_id].update(state, action, reward, False, next_state)
 
-        if sum(episode_rewards.values()) > 0:
-            print(f"Rewards so far: {sum(episode_rewards.values())}")
+        # Print the running episode rewards
+        total_rewards = sum(episode_rewards.values())
+        reward_checkpoint = total_rewards // 10 * 10
+        if reward_checkpoint > last_reward_checkpoint:
+            print(f"Rewards so far: {total_rewards}")
+            last_reward_checkpoint = reward_checkpoint
+
         current_ids = list(decision_steps.agent_id) + list(terminal_steps.agent_id)
 
     print(f"End of episode {episode + 1}, rewards: {sum(episode_rewards.values())}")

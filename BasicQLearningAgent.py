@@ -9,7 +9,7 @@ class QAgent:
         epsilon_decay: float,
         final_epsilon: float,
         action_num,
-        discount_factor: float = 0.95,
+        discount_factor: float = 0.6,
     ):
         """Initialize a Reinforcement Learning agent with an empty dictionary
         of state-action values (q_values), a learning rate and an epsilon.

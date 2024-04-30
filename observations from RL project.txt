@@ -1,0 +1,17 @@
+stuck in local min with fixed epsilon of 0.2 with the Q table method
+
+converges to global maximum with the following parameters:
+- learning rate = 0.1
+- n_episodes = 10000
+- start_epsilon = 0.9
+- epsilon_decay = (start_epsilon / n_episodes) * 10
+- final epsilon = 0.03
+- Method of learning : Q-learning table based
+
+discount rate of 0.6 for the two above agents
+
+
+For the DungeonEscapeEnv you must use a Deep Q network as the table method will fill up memory
+- to dos
+	- implement memory bank in DQNAgent
+	- implement the replay method to train the neural network on mini batches of the past memories of the agents

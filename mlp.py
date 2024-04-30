@@ -32,7 +32,7 @@ class MultilayerPerceptron:
             @ num_features : number of features/attributes in the input data'''
         
         if self.layer_sizes is None:
-            self.layer_sizes = self.layer_sizes = [num_features, 15, 10, 15, 7, num_actions] # sizes for each layer from the input (index 0) to output layer (index n - 1)
+            self.layer_sizes = self.layer_sizes = [num_features, 64, 64, num_actions] # sizes for each layer from the input (index 0) to output layer (index n - 1)
 
             # init activation functions and derivatives to be used for each layer
             for i in range(len(self.layer_sizes) - 1):
@@ -41,7 +41,7 @@ class MultilayerPerceptron:
                 self.activation_derivatives.append(NeuronLayer.tanh_derivative)
 
             # output layer
-            self.activation_functions.append(softmax) 
+            self.activation_functions.append(NeuronLayer.linear) 
             self.activation_derivatives.append(NeuronLayer.tanh_derivative)
 
         # Creates the layers of the neural network
@@ -51,7 +51,7 @@ class MultilayerPerceptron:
                                            self.activation_functions[i], self.activation_derivatives[i]))
             
         # Add output layer to layers list
-        self.layers.append(OutputLayer(self.layer_sizes[-2] + 1, self.layer_sizes[-1], softmax, self.activation_derivatives[1]))
+        self.layers.append(OutputLayer(self.layer_sizes[-2] + 1, self.layer_sizes[-1], NeuronLayer.linear, self.activation_derivatives[1]))
 
     def fit(self, x: NDArray, y: NDArray, num_actions: int):
         '''
@@ -66,8 +66,9 @@ class MultilayerPerceptron:
         # Grab dimensions of input data
         num_samples, num_features = x.shape # rows and columns of the input data x, respectively
         
-        # initialize model weights
-        self.initialize_mlp(num_features, num_actions)
+        # initialize model layers and weights
+        if self.layers == None:
+            self.initialize_mlp(num_features, num_actions)
 
         if num_samples < self.batch_size:
                 self.batch_size = num_samples // 6
@@ -178,7 +179,7 @@ class MultilayerPerceptron:
             loaded_mlp.activation_derivatives.append(NeuronLayer.tanh_derivative)
 
         # output layer
-        loaded_mlp.activation_functions.append(softmax) 
+        loaded_mlp.activation_functions.append(NeuronLayer.linear) 
         loaded_mlp.activation_derivatives.append(NeuronLayer.tanh_derivative)
 
         # create new layers of mlp
@@ -286,6 +287,10 @@ class NeuronLayer:
             '''
         
         return (1 - (np.tanh(z) ** 2))
+    
+    @staticmethod
+    def linear(z: NDArray):
+        return z
     
     def print_weights(self):
         print(self.weights.shape)

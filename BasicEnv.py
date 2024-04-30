@@ -4,7 +4,7 @@ from BasicQLearningAgent import QAgent
 from mlagents_envs.environment import UnityEnvironment as UE 
 from mlagents_envs.environment import ActionTuple
 
-env = UE(file_name="pyrenv/UnityEnvironment", seed=1, side_channels=[])
+env = UE(file_name="BasicEnv", seed=1, side_channels=[])
 env.reset()
 
 behavior_name = list(env.behavior_specs)[0]
@@ -16,10 +16,10 @@ num_actions = spec.action_spec.discrete_branches[0]
 num_states = sum([obs.shape[0] for obs in spec.observation_specs])
 
 # hyperparameters
-learning_rate = 0.01
+learning_rate = 0.1
 n_episodes = 10000
-start_epsilon = 1.0
-epsilon_decay = start_epsilon / (n_episodes)  # reduce the exploration over time
+start_epsilon = 0.9
+epsilon_decay = (start_epsilon / (n_episodes)) * 10 # reduce the exploration over time
 final_epsilon = 0.03
 
 agent = QAgent(learning_rate = learning_rate,
