@@ -1,5 +1,6 @@
 import mlagents
 import numpy as np
+from plot import plot_data
 from BasicQLearningAgent import QAgent
 from mlagents_envs.environment import UnityEnvironment as UE 
 from mlagents_envs.environment import ActionTuple
@@ -17,16 +18,18 @@ num_states = sum([obs.shape[0] for obs in spec.observation_specs])
 
 # hyperparameters
 learning_rate = 0.1
-n_episodes = 10000
+n_episodes = 1000
 start_epsilon = 0.9
 epsilon_decay = (start_epsilon / (n_episodes)) * 10 # reduce the exploration over time
-final_epsilon = 0.03
+final_epsilon = 0.2
 
 agent = QAgent(learning_rate = learning_rate,
                initial_epsilon = start_epsilon,
                epsilon_decay = epsilon_decay,
                final_epsilon = final_epsilon,
                action_num = num_actions)
+
+rewards_over_episodes = list() # Holds tuples of plot data (Reward, episode)
 
 for episode in range(n_episodes):
     env.reset()
@@ -79,7 +82,9 @@ for episode in range(n_episodes):
             # Update agent
             agent.update(state, action, reward, done, next_state)
     
+    rewards_over_episodes.append((episode_rewards, episode + 1))
     print(f"End of episode {episode + 1}, rewards: {episode_rewards}")
     agent.decay_epsilon()
-    
+
+plot_data(rewards_over_episodes)
 env.close()

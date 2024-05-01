@@ -22,7 +22,7 @@ class QAgent:
             discount_factor: The discount factor for computing the Q-value
             action_num: The total number of actions available to the agent
         """
-        self.q_values = defaultdict(lambda: np.zeros(action_num))
+        self.q_values = defaultdict(lambda: np.ones(action_num))
 
         self.lr = learning_rate
         self.discount_factor = discount_factor

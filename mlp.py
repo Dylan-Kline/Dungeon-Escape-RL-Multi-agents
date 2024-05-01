@@ -11,11 +11,8 @@ class MultilayerPerceptron:
     def __init__(self):
 
         # Hyperparameters for model
-        self.learning_rate = 0.03
+        self.learning_rate = 0.003
         self.iterations = 1
-        self.batch_size = 371 # size of stochastic batches
-        self.decay_rate = 0.0 # controls the rate of learning rate decay
-        self.lambda_reg = 0.0
 
         # Parameters for neural network layers
         self.activation_functions = list() # activation for each hidden layer and the output layer
@@ -69,33 +66,10 @@ class MultilayerPerceptron:
         # initialize model layers and weights
         if self.layers == None:
             self.initialize_mlp(num_features, num_actions)
-
-        if num_samples < self.batch_size:
-                self.batch_size = num_samples // 6
-
-        # for each iteration propagate the inputs and back prop the error
-        for l in range(self.iterations):
-
-            # Randomly sample a batch from the dataset
-            indices = np.random.choice(num_samples, self.batch_size, replace=False)
-            x_batch = x[indices]
-            y_batch = y[indices]
-
-            # propagate batches
-            y_pred = self.predict_normalized(x_batch)
             
-            # perform back propagation
-            self.backprop(y_pred, y_batch)
-
-            if l % 100 == 0:
-                y_pred = self.predict_normalized(x)
-                acc = accuracy(y, y_pred)
-                if (acc > .746 and l > 15000):
-                    break
-                # if l % 1000 == 0:
-
-            # Decay the learning rate as iterations progress
-            self.learning_rate = self.learning_rate / (1.0 + self.decay_rate * float(l))
+        # Propagate the current batch and perform backpropagation
+        y_pred = self.predict_normalized(x)
+        self.backprop(y_pred, y)
                 
     
     def predict_normalized(self, inputs: NDArray):
@@ -131,11 +105,11 @@ class MultilayerPerceptron:
             '''
         
         # compute output error
-        error = self.layers[-1].backward(predictions, true_labels, self.learning_rate, self.lambda_reg)
+        error = self.layers[-1].backward(predictions, true_labels, self.learning_rate)
 
         # Compute delta error for each hidden layer and update weights
         for layer in reversed(self.layers[:-1]):
-            error = layer.backward(error, self.learning_rate, self.lambda_reg)
+            error = layer.backward(error, self.learning_rate)
 
     def save(self, path):
         '''
@@ -146,7 +120,6 @@ class MultilayerPerceptron:
             "iterations": self.iterations,
             "batch size": self.batch_size,
             "decay rate": self.decay_rate,
-            "lambda": self.lambda_reg,
             "layer sizes": self.layer_sizes,
             "layer weights": [layer.get_weights().tolist() for layer in self.layers] # layer weights from 0 to output
         }
@@ -169,7 +142,6 @@ class MultilayerPerceptron:
         loaded_mlp.iterations = model_data['iterations']
         loaded_mlp.batch_size = model_data['batch size']
         loaded_mlp.decay_rate = model_data['decay rate']
-        loaded_mlp.lambda_reg = model_data['lambda']
         loaded_mlp.layer_sizes = model_data['layer sizes']
 
         # init activation functions and derivatives to be used for each layer
@@ -190,10 +162,16 @@ class MultilayerPerceptron:
             loaded_mlp.layers[-1].set_weights(np.array(model_data['layer weights'][i]))
             
         # Add output layer to layers list
-        loaded_mlp.layers.append(OutputLayer(loaded_mlp.layer_sizes[-2] + 1, loaded_mlp.layer_sizes[-1], softmax, loaded_mlp.activation_derivatives[1]))
+        loaded_mlp.layers.append(OutputLayer(loaded_mlp.layer_sizes[-2] + 1, loaded_mlp.layer_sizes[-1], NeuronLayer.linear, loaded_mlp.activation_derivatives[1]))
         loaded_mlp.layers[-1].set_weights(np.array(model_data['layer weights'][-1]))
 
         return loaded_mlp
+    
+    def get_layers(self):
+        return self.layers
+    
+    def set_layers(self, layers):
+        self.layers = layers
         
     def print_weights(self):
         '''
@@ -213,16 +191,17 @@ class MultilayerPerceptron:
         return : normalized data
         """
 
-        min_values = data.min(axis=0)
-        max_values = data.max(axis=0)
+        # min_values = data.min(axis=0)
+        # max_values = data.max(axis=0)
 
-        # Avoid division by zero in case max and min values are the same
-        range_values = max_values - min_values
-        range_values[range_values == 0] = 1
+        # # Avoid division by zero in case max and min values are the same
+        # range_values = max_values - min_values
+        # range_values[range_values == 0] = 1
 
-        # Apply the min-max normalization
-        normalized_data = (data - min_values) / range_values
-        return normalized_data
+        # # Apply the min-max normalization
+        # normalized_data = (data - min_values) / range_values
+        # return normalized_data
+        return data
     
 class NeuronLayer:
 
@@ -244,7 +223,7 @@ class NeuronLayer:
         self.output = self.activation_func(np.dot(self.input, self.weights.T))
         return self.output
     
-    def backward(self, output_error: NDArray, learning_rate: float, lambda_reg: float):
+    def backward(self, output_error: NDArray, learning_rate: float):
         '''
             Performs delta error backpropagation for the current layer.
             @ output_error : errors from the following layer
@@ -256,15 +235,11 @@ class NeuronLayer:
         error = self.deriv_func(self.output) * output_error
         gradient = np.dot(error.T, self.input)
 
-        # Compute regularization term
-        reg_term = lambda_reg * self.weights
-        reg_term[:, -1] = 0 # exclude bias from regularization
-
         # calculate input error for previous layer
         input_error = np.dot(error, self.weights)[:, :-1]
 
         # update the weights for this layer
-        self.weights -= learning_rate * (gradient + reg_term)
+        self.weights -= learning_rate * gradient
 
         return input_error
     
@@ -307,7 +282,7 @@ class NeuronLayer:
     
 class OutputLayer(NeuronLayer):
 
-    def backward(self, predictions: NDArray, true_labels: NDArray, learning_rate: float, lambda_reg: float):
+    def backward(self, predictions: NDArray, true_labels: NDArray, learning_rate: float):
         '''
             Performs delta error backpropagation for the current layer.
             @ output_error : errors from the following layer
@@ -316,18 +291,18 @@ class OutputLayer(NeuronLayer):
             '''
 
         # compute the error and gradient for the current layer 
-        output_error = predictions - true_labels
+        output_error = true_labels - predictions
         gradient = np.dot(output_error.T, self.input)
 
         # Compute regularization term
-        reg_term = lambda_reg * self.weights
-        reg_term[:, -1] = 0 # exclude bias from regularization
+        #reg_term = lambda_reg * self.weights
+        #reg_term[:, -1] = 0 # exclude bias from regularization
 
         # input error
         input_error = np.dot(output_error, self.weights)[:, :-1]
 
         # update the weights for this layer
-        self.weights -= learning_rate * (gradient + reg_term)
+        self.weights -= learning_rate * gradient
 
         # calculate input error for previous layer
         return input_error
